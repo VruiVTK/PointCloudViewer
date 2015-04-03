@@ -27,12 +27,18 @@
 // VTK includes
 #include <ExternalVTKWidget.h>
 #include <vtkActor.h>
-#include <vtkSphereSource.h>
+#include <vtkElevationFilter.h>
 #include <vtkLight.h>
+#include <vtkLookupTable.h>
 #include <vtkNew.h>
-#include <vtkSimplePointsReader.h>
+#include <vtkPolyData.h>
 #include <vtkPolyDataMapper.h>
 #include <vtkProperty.h>
+#include <vtkSimplePointsReader.h>
+#include <vtkSphereSource.h>
+#include <vtkPointData.h>
+#include <vtkFloatArray.h>
+#include <vtkUnsignedCharArray.h>
 
 // PointCloudViewer includes
 #include "BaseLocator.h"
@@ -266,7 +272,40 @@ void PointCloudViewer::initContext(GLContextData& contextData) const
     reader->SetFileName(this->FileName);
     reader->Update();
     reader->GetOutput()->GetBounds(this->DataBounds);
-    mapper->SetInputData(reader->GetOutput());
+    vtkNew<vtkElevationFilter> elevationFilter;
+    elevationFilter->SetInputData(reader->GetOutput());
+    elevationFilter->SetLowPoint(0.0, 0.0, this->DataBounds[4]);
+    elevationFilter->SetHighPoint(0.0, 0.0, this->DataBounds[5]);
+    elevationFilter->Update();
+    vtkSmartPointer<vtkPolyData> elevationOutput = vtkPolyData::SafeDownCast(
+      elevationFilter->GetOutput());
+    vtkSmartPointer<vtkFloatArray> elevation = vtkFloatArray::SafeDownCast(
+      elevationOutput->GetPointData()->GetArray("Elevation"));
+    vtkNew<vtkLookupTable> lut;
+    lut->SetTableRange(this->DataBounds[4], this->DataBounds[5]);
+    lut->Build();
+
+    vtkNew<vtkUnsignedCharArray> colors;
+    colors->SetName("Colors");
+    colors->SetNumberOfComponents(3);
+    colors->SetNumberOfTuples(elevationOutput->GetNumberOfPoints());
+
+    for (vtkIdType i = 0; i < elevationOutput->GetNumberOfPoints(); ++i)
+      {
+      double val = elevation->GetValue(i);
+
+      double dcolor[3];
+      lut->GetColor(val, dcolor);
+      unsigned char color[3];
+      for (unsigned int j = 0; j < 3; ++j)
+        {
+        color[j] = 255 * dcolor[j]/1.0;
+        }
+      colors->SetTupleValue(i, color);
+      }
+    elevationOutput->GetPointData()->AddArray(colors.GetPointer());
+
+    mapper->SetInputData(elevationOutput);
     }
   else
     {
@@ -299,9 +338,6 @@ void PointCloudViewer::display(GLContextData& contextData) const
 
   /* Get context data item */
   DataItem* dataItem = contextData.retrieveDataItem<DataItem>(this);
-
-  //dataItem->externalVTKWidget->GetRenderWindow()->SetSize(
-    //const_cast<int*>(Vrui::getWindow(0)->getViewportSize()));
 
   /* Set actor opacity */
   dataItem->actor->GetProperty()->SetOpacity(this->Opacity);
