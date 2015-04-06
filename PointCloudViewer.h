@@ -49,7 +49,6 @@ private:
   /* Elements: */
   GLMotif::PopupMenu* mainMenu; // The program's main menu
   GLMotif::PopupMenu* createMainMenu(void);
-  GLMotif::Popup* createRepresentationMenu(void);
   GLMotif::Popup* createAnalysisToolsMenu(void);
   GLMotif::PopupWindow* renderingDialog;
   GLMotif::PopupWindow* createRenderingDialog(void);
@@ -60,9 +59,6 @@ private:
 
   /* Opacity value */
   double Opacity;
-
-  /* Representation Type */
-  int RepresentationType;
 
   /* bounds */
   double* DataBounds;

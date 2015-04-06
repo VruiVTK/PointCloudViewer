@@ -74,7 +74,6 @@ PointCloudViewer::PointCloudViewer(int& argc,char**& argv)
   renderingDialog(NULL),
   Opacity(1.0),
   opacityValue(NULL),
-  RepresentationType(2),
   FirstFrame(true),
   analysisTool(0),
   ClippingPlanes(NULL),
@@ -143,10 +142,6 @@ GLMotif::PopupMenu* PointCloudViewer::createMainMenu(void)
   mainMenuPopup->setTitle("Main Menu");
   GLMotif::Menu* mainMenu = new GLMotif::Menu("MainMenu",mainMenuPopup,false);
 
-  GLMotif::CascadeButton* representationCascade = new GLMotif::CascadeButton("RepresentationCascade", mainMenu,
-    "Representation");
-  representationCascade->setPopup(createRepresentationMenu());
-
   GLMotif::CascadeButton* analysisToolsCascade = new GLMotif::CascadeButton("AnalysisToolsCascade", mainMenu,
     "Analysis Tools");
   analysisToolsCascade->setPopup(createAnalysisToolsMenu());
@@ -161,32 +156,6 @@ GLMotif::PopupMenu* PointCloudViewer::createMainMenu(void)
 
   mainMenu->manageChild();
   return mainMenuPopup;
-}
-
-//----------------------------------------------------------------------------
-GLMotif::Popup* PointCloudViewer::createRepresentationMenu(void)
-{
-  const GLMotif::StyleSheet* ss = Vrui::getWidgetManager()->getStyleSheet();
-
-  GLMotif::Popup* representationMenuPopup = new GLMotif::Popup("representationMenuPopup", Vrui::getWidgetManager());
-  GLMotif::SubMenu* representationMenu = new GLMotif::SubMenu("representationMenu", representationMenuPopup, false);
-
-  GLMotif::RadioBox* representation_RadioBox = new GLMotif::RadioBox("Representation RadioBox",representationMenu,true);
-
-  GLMotif::ToggleButton* showSurface=new GLMotif::ToggleButton("ShowSurface",representation_RadioBox,"Surface");
-  showSurface->getValueChangedCallbacks().add(this,&PointCloudViewer::changeRepresentationCallback);
-  GLMotif::ToggleButton* showSurfaceWEdges=new GLMotif::ToggleButton("ShowSurfaceWEdges",representation_RadioBox,"Surface With Edges");
-  showSurfaceWEdges->getValueChangedCallbacks().add(this,&PointCloudViewer::changeRepresentationCallback);
-  GLMotif::ToggleButton* showWireframe=new GLMotif::ToggleButton("ShowWireframe",representation_RadioBox,"Wireframe");
-  showWireframe->getValueChangedCallbacks().add(this,&PointCloudViewer::changeRepresentationCallback);
-  GLMotif::ToggleButton* showPoints=new GLMotif::ToggleButton("ShowPoints",representation_RadioBox,"Points");
-  showPoints->getValueChangedCallbacks().add(this,&PointCloudViewer::changeRepresentationCallback);
-
-  representation_RadioBox->setSelectionMode(GLMotif::RadioBox::ATMOST_ONE);
-  representation_RadioBox->setSelectedToggle(showSurface);
-
-  representationMenu->manageChild();
-  return representationMenuPopup;
 }
 
 //----------------------------------------------------------------------------
@@ -341,16 +310,6 @@ void PointCloudViewer::display(GLContextData& contextData) const
 
   /* Set actor opacity */
   dataItem->actor->GetProperty()->SetOpacity(this->Opacity);
-  if(this->RepresentationType < 3)
-    {
-    dataItem->actor->GetProperty()->SetRepresentation(this->RepresentationType);
-    dataItem->actor->GetProperty()->EdgeVisibilityOff();
-    }
-  else if(this->RepresentationType == 3)
-    {
-    dataItem->actor->GetProperty()->SetRepresentationToSurface();
-    dataItem->actor->GetProperty()->EdgeVisibilityOn();
-    }
   /* Render the scene */
   dataItem->externalVTKWidget->GetRenderWindow()->Render();
 
@@ -384,27 +343,6 @@ void PointCloudViewer::opacitySliderCallback(
   opacityValue->setValue(callBackData->value);
 }
 
-//----------------------------------------------------------------------------
-void PointCloudViewer::changeRepresentationCallback(GLMotif::ToggleButton::ValueChangedCallbackData* callBackData)
-{
-    /* Adjust representation state based on which toggle button changed state: */
-    if (strcmp(callBackData->toggle->getName(), "ShowSurface") == 0)
-    {
-      this->RepresentationType = 2;
-    }
-    else if (strcmp(callBackData->toggle->getName(), "ShowWireframe") == 0)
-    {
-      this->RepresentationType = 1;
-    }
-    else if (strcmp(callBackData->toggle->getName(), "ShowPoints") == 0)
-    {
-      this->RepresentationType = 0;
-    }
-    else if (strcmp(callBackData->toggle->getName(), "ShowSurfaceWEdges") == 0)
-    {
-      this->RepresentationType = 3;
-    }
-}
 //----------------------------------------------------------------------------
 void PointCloudViewer::changeAnalysisToolsCallback(GLMotif::ToggleButton::ValueChangedCallbackData* callBackData)
 {
